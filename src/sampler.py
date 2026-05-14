@@ -1,7 +1,6 @@
 from shap_e.diffusion.sample import sample_latents
 
 def sample(prompt, model, diffusion, batch_size, guidance_scale, steps):
-    """Runs the diffusion loop to generate 3D latents."""
     latents = sample_latents(
         batch_size=batch_size,
         model=model,
@@ -12,9 +11,10 @@ def sample(prompt, model, diffusion, batch_size, guidance_scale, steps):
         clip_denoised=True,
         use_fp16=True,
         use_karras=True,
-        karras_steps=steps,
+        karras_steps=64,
         sigma_min=1e-3,
         sigma_max=160,
         s_churn=0,
+        # sampler='ancestral',
     )
     return latents
