@@ -11,11 +11,36 @@ SERVICE_ACCOUNT_FILE = "service_account.json"
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 
-def get_drive_service(key_path=SERVICE_ACCOUNT_FILE):
-    credentials = service_account.Credentials.from_service_account_file(
-        key_path, scopes=SCOPES
-    )
-    service = build('drive', 'v3', credentials=credentials)
+from google_auth_oauthlib.flow import InstalledAppFlow
+
+import os
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+
+# Keep your SCOPES defined at the top
+SCOPES = ["https://www.googleapis.com/auth/drive"]
+TOKEN_FILE = "token.json"
+
+def get_drive_service(oauth_path='two.json'):
+    creds = None
+    if os.path.exists(TOKEN_FILE):
+        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            print("[Laptop] OAuth token expired. Refreshing background session...")
+            creds.refresh(Request())
+        else:
+            print("[Laptop] No valid token found. Opening browser for authentication...")
+            flow = InstalledAppFlow.from_client_secrets_file(oauth_path, SCOPES)
+            creds = flow.run_local_server(port=0)
+            
+        with open(TOKEN_FILE, 'w') as token:
+            token.write(creds.to_json())
+            
+    service = build('drive', 'v3', credentials=creds)
     return service
 
 def upload_job(service, job_id, prompt, format="obj"):
@@ -32,11 +57,12 @@ def upload_job(service, job_id, prompt, format="obj"):
         'parents': [PENDING_FOLDER_ID]
     }
     media = MediaIoBaseUpload(fh, mimetype='application/json', resumable=True)
-    
+
     uploaded_file = service.files().create(
         body=file_metadata,
         media_body=media,
-        fields='id, name'
+        fields='id, name',
+        supportsAllDrives=True
     ).execute()
     
     print(f"[Laptop] Uploaded job request: {uploaded_file.get('name')} (ID: {uploaded_file.get('id')})")
