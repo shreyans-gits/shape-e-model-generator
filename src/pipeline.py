@@ -4,7 +4,7 @@ from loader import load_models
 from sampler import sample
 from exporter import export
 
-def generate(prompt, output_path, format='glb', guidance_scale=15.0, steps=64):
+def generate(prompt, output_path, format='glb', guidance_scale=3.0, steps=64):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
