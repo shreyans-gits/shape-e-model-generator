@@ -93,3 +93,41 @@ def download_file(service, file_id, local_path):
 def delete_file(service, file_id):
     service.files().delete(fileId=file_id).execute()
     print(f"[Cleanup] Deleted remote file ID: {file_id} from Google Drive.")
+
+def get_drive_service_from_dict(account_info):
+    credentials = service_account.Credentials.from_service_account_info(
+        account_info, scopes=SCOPES
+    )
+    service = build('drive', 'v3', credentials=credentials)
+    return service
+
+from googleapiclient.http import MediaFileUpload
+def upload_file(service, file_path, filename, folder_id):
+    """Uploads a physical file from the local disk to a specific Google Drive folder."""
+    file_metadata = {
+        'name': filename,
+        'parents': [folder_id]
+    }
+    
+    media = MediaFileUpload(file_path, resumable=True)
+    
+    uploaded_file = service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields='id, name'
+    ).execute()
+    
+    print(f"[Colab] Uploaded asset: {uploaded_file.get('name')} (ID: {uploaded_file.get('id')})")
+    return uploaded_file
+
+def read_file_contents(service, file_id):
+    request = service.files().get_media(fileId=file_id)
+    fh = io.BytesIO()
+    downloader = MediaIoBaseDownload(fh, request)
+    
+    done = False
+    while done is False:
+        _, done = downloader.next_chunk()
+        
+    fh.seek(0)
+    return fh.read().decode('utf-8')
